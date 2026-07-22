@@ -292,9 +292,19 @@ function selectAutocompleteItem(id) {
   }
 }
 
+let INITIAL_DISPLAY_LIMIT = 20;
+let isShowingAll = false;
+
+function toggleShowAllItems() {
+  triggerHaptic();
+  isShowingAll = !isShowingAll;
+  renderProductsGrid();
+}
+
 function clearSearch() {
   document.getElementById("search-input").value = "";
   document.getElementById("clear-search-btn").classList.remove("active");
+  isShowingAll = false;
   filteredData = [...inventoryData];
   applyFilterChip();
   closeAutocomplete();
@@ -339,27 +349,32 @@ function applyFilterChip() {
  */
 function renderProductsGrid() {
   const grid = document.getElementById("products-grid");
+  if (!grid) return;
+
   if (filteredData.length === 0) {
     grid.innerHTML = `
       <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 3rem;">
         <i data-lucide="search-x" style="width: 48px; height: 48px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-        <p>Không tìm thấy vật tư nào trong kho.</p>
+        <p>Không tìm thấy vật tư nào phù hợp.</p>
       </div>
     `;
     lucide.createIcons();
     return;
   }
 
-  grid.innerHTML = filteredData.map(item => {
-    const isOut = item.stock <= 0;
+  const query = removeAccents(document.getElementById("search-input").value.trim());
+  const needsLimit = !query && currentFilter === 'all' && !isShowingAll && filteredData.length > INITIAL_DISPLAY_LIMIT;
+  const displayItems = needsLimit ? filteredData.slice(0, INITIAL_DISPLAY_LIMIT) : filteredData;
+
+  let html = displayItems.map(item => {
     const inCart = exportCart.find(c => c.id === item.id);
     const cartQty = inCart ? inCart.exportQty : 0;
-    const remainingStock = item.stock - cartQty;
+    const remainingStock = Math.max(0, item.stock - cartQty);
 
     return `
       <div class="product-card">
         <div class="product-header">
-          <span class="product-sku">${item.sku || 'N/A'}</span>
+          <span class="product-sku">${escapeHtml(item.sku) || 'N/A'}</span>
           <span class="stock-tag ${getStockClass(item.stock)}">
             ${item.stock > 0 ? (item.stock <= 10 ? 'Sắp Hết' : 'Còn Hàng') : 'Hết Hàng'}
           </span>
@@ -375,7 +390,7 @@ function renderProductsGrid() {
         <div class="product-footer">
           <div class="stock-count-display">
             <span class="stock-num">${remainingStock}</span>
-            <span class="unit-label">Tồn kho (${item.unit})</span>
+            <span class="unit-label">Tồn kho (${escapeHtml(item.unit)})</span>
           </div>
 
           <button 
@@ -390,6 +405,27 @@ function renderProductsGrid() {
     `;
   }).join("");
 
+  if (needsLimit) {
+    html += `
+      <div class="load-more-bar">
+        <span>Hiển thị ${INITIAL_DISPLAY_LIMIT} / ${filteredData.length} vật tư tiêu biểu</span>
+        <button class="btn btn-secondary" onclick="toggleShowAllItems()" style="font-size:0.85rem;">
+          <i data-lucide="chevron-down"></i> Xem Tất Cả (${filteredData.length} Mã Hàng)
+        </button>
+      </div>
+    `;
+  } else if (isShowingAll && filteredData.length > INITIAL_DISPLAY_LIMIT && !query && currentFilter === 'all') {
+    html += `
+      <div class="load-more-bar">
+        <span>Đã hiển thị toàn bộ ${filteredData.length} vật tư</span>
+        <button class="btn btn-secondary" onclick="toggleShowAllItems()" style="font-size:0.85rem;">
+          <i data-lucide="chevron-up"></i> Thu Gọn (Hiện 20 Mã)
+        </button>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
   lucide.createIcons();
 }
 

@@ -18,9 +18,22 @@ let DEFAULT_APPS_SCRIPT_URL = "";
 let appsScriptUrl = localStorage.getItem('apps_script_url') || "";
 
 /**
- * Load Environment Parameters from .env File
+ * Load Environment & App Parameters (config.json or .env)
  */
 async function loadEnvConfig() {
+  try {
+    // 1. Try loading config.json (GitHub Pages & Static Host compatible)
+    const jsonRes = await fetch("config.json");
+    if (jsonRes.ok) {
+      const cfg = await jsonRes.json();
+      if (cfg.GOOGLE_SHEET_CSV_URL) GOOGLE_SHEET_CSV_URL = cfg.GOOGLE_SHEET_CSV_URL;
+      if (cfg.DEFAULT_APPS_SCRIPT_URL) DEFAULT_APPS_SCRIPT_URL = cfg.DEFAULT_APPS_SCRIPT_URL;
+      return;
+    }
+  } catch (e) {
+    // Fallback to .env parser
+  }
+
   try {
     const res = await fetch(".env");
     if (!res.ok) return;
@@ -33,14 +46,11 @@ async function loadEnvConfig() {
       if (parts.length < 2) return;
       const key = parts[0].trim();
       const val = parts.slice(1).join("=").trim();
-      if (key === "GOOGLE_SHEET_CSV_URL" && val) {
-        GOOGLE_SHEET_CSV_URL = val;
-      } else if (key === "DEFAULT_APPS_SCRIPT_URL" && val) {
-        DEFAULT_APPS_SCRIPT_URL = val;
-      }
+      if (key === "GOOGLE_SHEET_CSV_URL" && val) GOOGLE_SHEET_CSV_URL = val;
+      if (key === "DEFAULT_APPS_SCRIPT_URL" && val) DEFAULT_APPS_SCRIPT_URL = val;
     });
   } catch (e) {
-    console.warn("Could not load .env file:", e);
+    console.warn("Could not load config file:", e);
   }
 }
 

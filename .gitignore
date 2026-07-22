@@ -3,3 +3,6 @@
 *.log
 export_history.json
 __pycache__/
+.env
+
+.env

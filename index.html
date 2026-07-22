@@ -284,7 +284,7 @@
   <div class="modal-overlay" id="modal-config">
     <div class="modal-container" style="max-width: 750px;">
       <div class="modal-header">
-        <h3 class="modal-title"><i data-lucide="settings"></i> Cấu Hình Google Sheet</h3>
+        <h3 class="modal-title"><i data-lucide="settings"></i> Cấu Hình Google Sheet & Apps Script</h3>
         <button class="modal-close" onclick="closeModal('modal-config')">&times;</button>
       </div>
       <div class="modal-body">
@@ -296,6 +296,27 @@
             class="form-input" 
             value="https://docs.google.com/spreadsheets/d/1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI/edit?gid=424403728#gid=424403728"
           />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label">Google Apps Script Web App URL (Đồng bộ xuất kho & Tồn kho 2 chiều)</label>
+          <input 
+            type="text" 
+            id="config-script-url" 
+            class="form-input" 
+            placeholder="Dán URL Google Apps Script Web App (https://script.google.com/macros/s/.../exec)"
+          />
+        </div>
+
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+          <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;"><i data-lucide="code"></i> Hướng dẫn cài đặt Google Apps Script:</h4>
+          <ol style="margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            <li>Mở file Google Sheet mới của bạn &rarr; Chọn <strong>Tiện ích mở rộng (Extensions)</strong> &rarr; <strong>Apps Script</strong>.</li>
+            <li>Dán toàn bộ mã nguồn file <code>Code.gs</code>.</li>
+            <li>Nhấn <strong>Triển khai (Deploy)</strong> &rarr; <strong>Triển khai dưới dạng ứng dụng web (New deployment &rarr; Web app)</strong>.</li>
+            <li>Tại mục "Ai có quyền truy cập" (Who has access): Chọn <strong>Bất kỳ ai (Anyone)</strong>.</li>
+            <li>Copy URL Web App nhận được (dạng <code>https://script.google.com/macros/s/.../exec</code>) và dán vào ô bên trên.</li>
+          </ol>
         </div>
 
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">

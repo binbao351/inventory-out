@@ -764,12 +764,21 @@ function openHistoryModal() {
 }
 
 function openConfigModal() {
+  const scriptInput = document.getElementById("config-script-url");
+  if (scriptInput) {
+    scriptInput.value = appsScriptUrl;
+  }
   openModal("modal-config");
 }
 
 function saveConfiguration() {
+  const scriptInput = document.getElementById("config-script-url");
+  if (scriptInput) {
+    appsScriptUrl = scriptInput.value.trim();
+    localStorage.setItem('apps_script_url', appsScriptUrl);
+  }
   closeModal('modal-config');
-  alert("Đã lưu cấu hình Google Sheet!");
+  alert("Đã lưu cấu hình Google Apps Script Web App URL!");
 }
 
 /**

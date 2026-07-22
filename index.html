@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ Thống Xuất Kho Vật Tư - Google Sheets Connected</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo">
+        <i data-lucide="package-minus"></i>
+      </div>
+      <div>
+        <h1 class="brand-title">HỆ THỐNG XUẤT KHO VẬT TƯ</h1>
+        <p class="brand-subtitle">Đồng bộ CSDL Google Sheet & Báo cáo Tồn Kho</p>
+      </div>
+    </div>
+
+    <div class="header-status">
+      <div class="status-badge" id="connection-status">
+        <span class="status-dot"></span>
+        <span id="status-text">Đã kết nối Google Sheet</span>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-secondary" onclick="openHistoryModal()">
+          <i data-lucide="history"></i> Lịch Sử Xuất
+        </button>
+        <button class="btn btn-secondary" onclick="openConfigModal()">
+          <i data-lucide="settings"></i> Cấu Hình GSheet
+        </button>
+        <button class="btn btn-primary" onclick="syncData()">
+          <i data-lucide="refresh-cw"></i> Đồng Bộ
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="app-container">
+    
+    <!-- Left: Catalog & Instant Search -->
+    <section class="catalog-section">
+      
+      <!-- Search & Filters -->
+      <div class="search-box">
+        <div class="search-input-wrapper">
+          <i data-lucide="search" class="search-icon"></i>
+          <input 
+            type="text" 
+            id="search-input" 
+            class="search-input" 
+            placeholder="Nhập TÊN HÀNG hoặc MÃ HÀNG để tìm xuất kho... (VD: Sin 5mm, Sin 1BG, Song Hỷ Phát...)"
+            autocomplete="off"
+          />
+          <button class="clear-search-btn" id="clear-search-btn" onclick="clearSearch()">&times;</button>
+        </div>
+
+        <!-- Auto-complete Suggestions -->
+        <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
+
+        <!-- Filter Chips -->
+        <div class="filter-chips">
+          <button class="chip active" onclick="setFilter('all', this)">Tất cả (<span id="count-all">0</span>)</button>
+          <button class="chip" onclick="setFilter('in-stock', this)">Còn hàng (<span id="count-instock">0</span>)</button>
+          <button class="chip" onclick="setFilter('low-stock', this)">Sắp hết (&le; 10)</button>
+          <button class="chip" onclick="setFilter('out-stock', this)">Hết hàng (0)</button>
+        </div>
+      </div>
+
+      <!-- Products Grid List -->
+      <div class="products-grid" id="products-grid">
+        <!-- Product Cards injected via JavaScript -->
+      </div>
+
+    </section>
+
+    <!-- Right: Export Slip Builder Sidebar -->
+    <aside class="slip-panel">
+      <div class="slip-header">
+        <h2 class="slip-title">
+          <i data-lucide="shopping-cart"></i> Phiếu Xuất Kho
+          <span class="badge-count" id="slip-item-count">0</span>
+        </h2>
+        <button class="btn btn-danger btn-sm" onclick="clearExportCart()" title="Xóa toàn bộ giỏ">
+          <i data-lucide="trash-2"></i> Xóa
+        </button>
+      </div>
+
+      <!-- Selected Items Queue -->
+      <div class="slip-items-list" id="slip-items-list">
+        <div style="text-align: center; color: var(--text-muted); padding: 2rem 1rem;">
+          <i data-lucide="inbox" style="width: 40px; height: 40px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+          <p>Chưa có sản phẩm nào được chọn.</p>
+          <p style="font-size: 0.8rem; margin-top: 0.25rem;">Gõ tên sản phẩm ở khung tìm kiếm hoặc bấm nút "+" để thêm vào phiếu.</p>
+        </div>
+      </div>
+
+      <!-- Export Form Details -->
+      <form class="slip-form" onsubmit="handleExportSubmit(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Người nhận hàng <span style="color:var(--accent-rose)">*</span></label>
+            <input type="text" id="slip-recipient" class="form-input" placeholder="Tên nhân viên / Khách hàng" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bộ phận / Phòng ban</label>
+            <input type="text" id="slip-department" class="form-input" placeholder="Xưởng sản xuất / Tổ bảo trì..." />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Lý do xuất kho</label>
+            <select id="slip-reason" class="form-select">
+              <option value="Xuất phục vụ sản xuất">Xuất phục vụ sản xuất</option>
+              <option value="Xuất bán / Kinh doanh">Xuất bán / Kinh doanh</option>
+              <option value="Xuất điều chuyển nội bộ">Xuất điều chuyển nội bộ</option>
+              <option value="Xuất bảo trì / Thay thế">Xuất bảo trì / Thay thế</option>
+              <option value="Khác">Lý do khác...</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Dự án / Công trình</label>
+            <input type="text" id="slip-project" class="form-input" placeholder="Tên dự án..." />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Ghi chú phiếu xuất</label>
+          <input type="text" id="slip-note" class="form-input" placeholder="Thông tin thêm..." />
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="slip-actions">
+          <button type="submit" class="btn btn-success" id="btn-confirm-export" style="width: 100%; padding: 0.85rem;" disabled>
+            <i data-lucide="check-circle"></i> XÁC NHẬN XUẤT KHO & ĐỒNG BỘ
+          </button>
+          <button type="button" class="btn btn-secondary" onclick="openPrintModal()" style="width: 100%;">
+            <i data-lucide="printer"></i> Xem & In Phiếu Xuất
+          </button>
+        </div>
+      </form>
+    </aside>
+
+  </main>
+
+  <!-- Modal: Print Slip Preview -->
+  <div class="modal-overlay" id="modal-print">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 class="modal-title">Xem Trước Phiếu Xuất Kho</h3>
+        <button class="modal-close" onclick="closeModal('modal-print')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="printable-slip" id="printable-slip">
+          <h2>PHIẾU XUẤT KHO VẬT TƯ</h2>
+          <div class="sub-header">Mã phiếu: <strong id="print-slip-id">PXK-YYYYMMDD</strong> | Ngày: <span id="print-date">---</span></div>
+          
+          <div class="slip-meta-grid">
+            <div><strong>Người nhận:</strong> <span id="print-recipient">---</span></div>
+            <div><strong>Bộ phận:</strong> <span id="print-department">---</span></div>
+            <div><strong>Lý do xuất:</strong> <span id="print-reason">---</span></div>
+            <div><strong>Dự án / Ghi chú:</strong> <span id="print-note">---</span></div>
+          </div>
+
+          <table class="slip-table">
+            <thead>
+              <tr>
+                <th>STT</th>
+                <th>Mã Hàng</th>
+                <th>Tên Vật Tư / Hàng Hóa</th>
+                <th>ĐVT</th>
+                <th>Số Lượng Xuất</th>
+              </tr>
+            </thead>
+            <tbody id="print-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+
+          <div class="signatures-grid">
+            <div>
+              <div class="sig-title">Người Lập Phiếu</div>
+              <div>(Ký & ghi rõ họ tên)</div>
+            </div>
+            <div>
+              <div class="sig-title">Người Nhận Hàng</div>
+              <div>(Ký & ghi rõ họ tên)</div>
+            </div>
+            <div>
+              <div class="sig-title">Thủ Kho Xuất</div>
+              <div>(Ký & ghi rõ họ tên)</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: flex-end;">
+          <button class="btn btn-secondary" onclick="closeModal('modal-print')">Đóng</button>
+          <button class="btn btn-primary" onclick="window.print()"><i data-lucide="printer"></i> In Phiếu Ngay</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Export History -->
+  <div class="modal-overlay" id="modal-history">
+    <div class="modal-container" style="max-width: 850px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="history"></i> Lịch Sử Lệnh Xuất Kho</h3>
+        <button class="modal-close" onclick="closeModal('modal-history')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <input type="text" id="history-search" class="form-input" placeholder="Tìm theo mã phiếu, tên hàng, người nhận..." onkeyup="filterHistoryTable()" />
+          <button class="btn btn-secondary" onclick="exportHistoryCSV()"><i data-lucide="download"></i> Xuất CSV</button>
+        </div>
+        <div style="max-height: 400px; overflow-y: auto;">
+          <table class="slip-table" style="font-size: 0.8rem;">
+            <thead>
+              <tr>
+                <th>Mã Phiếu</th>
+                <th>Thời Gian</th>
+                <th>Tên Hàng</th>
+                <th>Số Lượng</th>
+                <th>Người Nhận</th>
+                <th>Lý Do</th>
+              </tr>
+            </thead>
+            <tbody id="history-table-body">
+              <!-- History rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Google Apps Script Config -->
+  <div class="modal-overlay" id="modal-config">
+    <div class="modal-container" style="max-width: 750px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="settings"></i> Cấu Hình Google Sheet & Apps Script</h3>
+        <button class="modal-close" onclick="closeModal('modal-config')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label class="form-label">URL Google Sheet Data (CSV / Edit Link)</label>
+          <input 
+            type="text" 
+            id="config-sheet-url" 
+            class="form-input" 
+            value="https://docs.google.com/spreadsheets/d/1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d/edit?gid=1115255620#gid=1115255620"
+          />
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+          <label class="form-label">Google Apps Script Web App URL (Đồng bộ xuất kho 2 chiều)</label>
+          <input 
+            type="text" 
+            id="config-script-url" 
+            class="form-input" 
+            placeholder="Dán URL Google Apps Script Web App (https://script.google.com/macros/s/.../exec)"
+          />
+        </div>
+
+        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+          <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;"><i data-lucide="code"></i> Hướng dẫn cài đặt Google Apps Script:</h4>
+          <ol style="margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
+            <li>Mở file Google Sheet của bạn &rarr; Chọn <strong>Tiện ích mở rộng (Extensions)</strong> &rarr; <strong>Apps Script</strong>.</li>
+            <li>Dán toàn bộ mã nguồn file <code>Code.gs</code> (đã được tạo sẵn trong thư mục ứng dụng này).</li>
+            <li>Nhấn <strong>Triển khai (Deploy)</strong> &rarr; <strong>Triển khai dưới dạng ứng dụng web (New Deployment &rarr; Web App)</strong>.</li>
+            <li>Tại mục "Ai có quyền truy cập" (Who has access): Chọn <strong>Bất kỳ ai (Anyone)</strong>.</li>
+            <li>Coppy URL Web App nhận được và dán vào ô bên trên.</li>
+          </ol>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+          <button class="btn btn-secondary" onclick="closeModal('modal-config')">Hủy</button>
+          <button class="btn btn-primary" onclick="saveConfiguration()">Lưu Cấu Hình</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

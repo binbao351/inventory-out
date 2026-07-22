@@ -259,7 +259,8 @@ function renderAutocomplete(normQuery) {
 }
 
 function closeAutocomplete() {
-  document.getElementById("autocomplete-dropdown").classList.remove("active");
+  const dropdown = document.getElementById("autocomplete-dropdown");
+  if (dropdown) dropdown.classList.remove("active");
 }
 
 function selectAutocompleteItem(id) {

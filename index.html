@@ -58,22 +58,21 @@
       <!-- Search & Filters -->
       <div class="search-box">
         <div class="search-input-wrapper">
-          <i data-lucide="search" class="search-icon"></i>
-          <input 
-            type="text" 
-            id="search-input" 
-            class="search-input" 
-            placeholder="Tìm TÊN HÀNG hoặc MÃ HÀNG... (VD: Sin 5mm, Sin 1BG...)"
-            autocomplete="off"
-          />
-          <button class="btn btn-secondary" onclick="startBarcodeScanner()" style="min-height: 48px; border-radius: var(--radius-md); font-size: 0.85rem; padding: 0 0.8rem; flex-shrink: 0;" title="Quét mã vạch bằng camera">
+          <div class="search-input-field">
+            <i data-lucide="search" class="search-icon"></i>
+            <input 
+              type="text" 
+              id="search-input" 
+              class="search-input" 
+              placeholder="Tìm TÊN HÀNG hoặc MÃ HÀNG... (VD: Sin 5mm, Sin 1BG...)"
+              autocomplete="off"
+            />
+            <button class="clear-search-btn" id="clear-search-btn" onclick="clearSearch()" title="Xóa từ khóa">&times;</button>
+          </div>
+          <button class="btn btn-secondary btn-scan-qr" onclick="startBarcodeScanner()" title="Quét mã vạch bằng camera">
             <i data-lucide="camera"></i> <span class="hide-on-mobile-xs">Quét Mã</span>
           </button>
-          <button class="clear-search-btn" id="clear-search-btn" onclick="clearSearch()">&times;</button>
         </div>
-
-        <!-- Auto-complete Suggestions -->
-        <div class="autocomplete-dropdown" id="autocomplete-dropdown"></div>
 
         <!-- Filter Chips -->
         <div class="filter-chips">

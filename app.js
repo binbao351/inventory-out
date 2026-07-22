@@ -230,7 +230,7 @@ function handleSearch(query) {
   });
 
   renderProductsGrid();
-  renderAutocomplete(normQuery);
+  closeAutocomplete();
 }
 
 function renderAutocomplete(normQuery) {

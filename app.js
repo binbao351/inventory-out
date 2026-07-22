@@ -1,6 +1,6 @@
 /**
  * WAREHOUSE INVENTORY EXPORT SYSTEM - FRONTEND APP (MOBILE OPTIMIZED)
- * Data Source: Google Sheet ID 1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d (GID 1115255620)
+ * Data Source: Google Sheet ID 1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI (GID 424403728)
  */
 
 // App State
@@ -12,7 +12,7 @@ let currentFilter = 'all';
 let isMobileDevice = false;
 let html5QrScanner = null;
 
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d/export?format=csv&gid=1115255620";
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI/export?format=csv&gid=424403728";
 let appsScriptUrl = localStorage.getItem('apps_script_url') || "";
 
 // Initialize App

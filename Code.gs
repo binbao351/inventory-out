@@ -1,7 +1,7 @@
 /**
  * GOOGLE APPS SCRIPT - QUẢN LÝ XUẤT KHO VẬT TƯ
- * Google Sheet ID: 1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d
- * GID: 1115255620
+ * Google Sheet ID: 1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI
+ * GID: 424403728
  */
 
 const SHEET_NAME_DATA = "Data"; // Hoặc tên Tab chứa dữ liệu tồn kho

@@ -8,7 +8,7 @@ import openpyxl
 
 PORT = 8000
 EXCEL_FILE = os.path.join(os.path.dirname(__file__), "Item.xlsx")
-GSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d/export?format=csv&gid=1115255620"
+GSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI/export?format=csv&gid=424403728"
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), "export_history.json")
 
 def load_items_from_excel():

@@ -628,6 +628,22 @@ async function handleExportSubmit(e) {
       }
     });
 
+    // Send Export Payload to Google Apps Script Web App or Local Server
+    if (appsScriptUrl) {
+      await fetch(appsScriptUrl, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      await fetch("/api/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      }).catch(e => console.warn("Local API error:", e));
+    }
+
     // Save to Local Audit Log
     payload.items.forEach(item => {
       exportHistory.unshift({

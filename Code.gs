@@ -7,6 +7,20 @@
 const SHEET_NAME_DATA = "Data"; // Hoặc tên Tab chứa dữ liệu tồn kho
 const SHEET_NAME_LOGS = "LICH_SU_XUAT_KHO";
 
+function parseVietnameseNumber(val) {
+  if (val === null || val === undefined) return 0;
+  let str = String(val).trim();
+  if (!str) return 0;
+  str = str.replace(/\s+/g, "");
+  if (str.includes(".") && str.includes(",")) {
+    str = str.replace(/\./g, "").replace(",", ".");
+  } else if (str.includes(",")) {
+    str = str.replace(",", ".");
+  }
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
+
 /**
  * Phục vụ Giao diện Web App khi truy cập qua URL Web App của Google Apps Script
  */
@@ -93,10 +107,8 @@ function getItems() {
     const ten = String(row[colTen] || "").trim();
     if (!ma && !ten) continue;
 
-    let ton = row[colTon];
-    if (typeof ton === "string") {
-      ton = parseFloat(ton.replace(/,/g, "").trim()) || 0;
-    }
+    let ton = parseVietnameseNumber(row[colTon]);
+    let minQty = parseVietnameseNumber(row[colMin]);
 
     items.push({
       rowIndex: r + 1, // 1-indexed row number in Sheet
@@ -105,9 +117,9 @@ function getItems() {
       warehouse: String(row[colKho] || "KHO TỔNG").trim(),
       location: String(row[colMoTa] || "").trim(),
       unit: String(row[colDvt] || "Cái").trim(),
-      stock: Number(ton) || 0,
+      stock: ton,
       supplier: String(row[colNguon] || "").trim(),
-      minStock: Number(row[colMin]) || 0
+      minStock: minQty
     });
   }
 

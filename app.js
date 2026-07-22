@@ -87,6 +87,26 @@ async function fetchInventoryData() {
 }
 
 /**
+ * Parse Vietnamese Number format (e.g. "9,000 " -> 9, "48,000 " -> 48, "2,0 " -> 2)
+ */
+function parseVietnameseNumber(val) {
+  if (val === null || val === undefined) return 0;
+  let str = String(val).trim();
+  if (!str) return 0;
+
+  str = str.replace(/\s+/g, "");
+
+  if (str.includes(".") && str.includes(",")) {
+    str = str.replace(/\./g, "").replace(",", ".");
+  } else if (str.includes(",")) {
+    str = str.replace(",", ".");
+  }
+
+  const num = parseFloat(str);
+  return isNaN(num) ? 0 : num;
+}
+
+/**
  * Robust Google Sheet CSV Parser
  */
 function parseGoogleSheetCSV(csvText) {
@@ -125,9 +145,8 @@ function parseGoogleSheetCSV(csvText) {
 
     if (row[colTon] && row[colTon].trim() === "Số lượng") continue;
 
-    let stockRaw = row[colTon] || "0";
-    stockRaw = stockRaw.replace(/,/g, "").trim();
-    let stockNum = parseFloat(stockRaw) || 0;
+    let stockNum = parseVietnameseNumber(row[colTon]);
+    let minNum = parseVietnameseNumber(row[colMin]);
 
     items.push({
       id: ma || `ITEM_${r}`,
@@ -138,7 +157,7 @@ function parseGoogleSheetCSV(csvText) {
       unit: row[colDvt] ? row[colDvt].trim() : "Cái",
       stock: stockNum,
       supplier: row[colNguon] ? row[colNguon].trim() : "",
-      minStock: parseFloat(row[colMin]) || 0
+      minStock: minNum
     });
   }
 

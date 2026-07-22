@@ -178,7 +178,7 @@ function setupEventListeners() {
  */
 function handleSearch(query) {
   const normQuery = removeAccents(query.trim());
-  
+
   if (!normQuery) {
     filteredData = [...inventoryData];
     applyFilterChip();
@@ -260,8 +260,8 @@ function applyFilterChip() {
   const query = removeAccents(document.getElementById("search-input").value.trim());
 
   if (query) {
-    list = list.filter(item => 
-      removeAccents(item.name).includes(query) || 
+    list = list.filter(item =>
+      removeAccents(item.name).includes(query) ||
       removeAccents(item.sku).includes(query)
     );
   }
@@ -481,7 +481,7 @@ async function handleExportSubmit(e) {
     return;
   }
 
-  const exportId = "PXK-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Math.floor(1000 + Math.random() * 9000);
+  const exportId = "PXK-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + Math.floor(1000 + Math.random() * 9000);
   const timestamp = new Date().toLocaleString("vi-VN");
 
   const payload = {
@@ -517,7 +517,7 @@ async function handleExportSubmit(e) {
       await fetch(appsScriptUrl, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(payload)
       });
     } else {
@@ -573,7 +573,7 @@ function openPrintModal() {
     return;
   }
 
-  const exportId = "PXK-" + new Date().toISOString().slice(0,10).replace(/-/g,"");
+  const exportId = "PXK-" + new Date().toISOString().slice(0, 10).replace(/-/g, "");
   document.getElementById("print-slip-id").textContent = exportId;
   document.getElementById("print-date").textContent = new Date().toLocaleDateString("vi-VN");
 
@@ -675,7 +675,7 @@ function renderHistoryTable() {
 
 function filterHistoryTable() {
   const q = removeAccents(document.getElementById("history-search").value.trim());
-  const filtered = exportHistory.filter(h => 
+  const filtered = exportHistory.filter(h =>
     removeAccents(h.exportId).includes(q) ||
     removeAccents(h.name).includes(q) ||
     removeAccents(h.recipient).includes(q)
@@ -704,7 +704,7 @@ function exportHistoryCSV() {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Lich_Su_Xuat_Kho_${new Date().toISOString().slice(0,10)}.csv`;
+  link.download = `Lich_Su_Xuat_Kho_${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
 }
 

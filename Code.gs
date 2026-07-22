@@ -98,7 +98,6 @@ function getItems() {
       ton = parseFloat(ton.replace(/,/g, "").trim()) || 0;
     }
 
-    items.append
     items.push({
       rowIndex: r + 1, // 1-indexed row number in Sheet
       sku: ma,

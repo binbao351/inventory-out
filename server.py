@@ -8,8 +8,22 @@ import openpyxl
 
 PORT = 8000
 EXCEL_FILE = os.path.join(os.path.dirname(__file__), "Item.xlsx")
-GSHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI/export?format=csv&gid=424403728"
+ENV_FILE = os.path.join(os.path.dirname(__file__), ".env")
+APPS_SCRIPT_URL = ""
+GSHEET_CSV_URL = ""
 HISTORY_FILE = os.path.join(os.path.dirname(__file__), "export_history.json")
+
+if os.path.exists(ENV_FILE):
+    try:
+        with open(ENV_FILE, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("DEFAULT_APPS_SCRIPT_URL=") or line.startswith("GOOGLE_APPS_SCRIPT_URL="):
+                    APPS_SCRIPT_URL = line.split("=", 1)[1].strip()
+                elif line.startswith("GOOGLE_SHEET_CSV_URL="):
+                    GSHEET_CSV_URL = line.split("=", 1)[1].strip()
+    except Exception as e:
+        print("Error reading .env:", e)
 
 def load_items_from_excel():
     if not os.path.exists(EXCEL_FILE):

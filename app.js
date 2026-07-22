@@ -12,8 +12,37 @@ let currentFilter = 'all';
 let isMobileDevice = false;
 let html5QrScanner = null;
 
-const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI/export?format=csv&gid=424403728";
+let GOOGLE_SHEET_CSV_URL = "";
+let DEFAULT_APPS_SCRIPT_URL = ""; 
+
 let appsScriptUrl = localStorage.getItem('apps_script_url') || "";
+
+/**
+ * Load Environment Parameters from .env File
+ */
+async function loadEnvConfig() {
+  try {
+    const res = await fetch(".env");
+    if (!res.ok) return;
+    const text = await res.text();
+    const lines = text.split(/\r?\n/);
+    lines.forEach(line => {
+      line = line.trim();
+      if (!line || line.startsWith("#")) return;
+      const parts = line.split("=");
+      if (parts.length < 2) return;
+      const key = parts[0].trim();
+      const val = parts.slice(1).join("=").trim();
+      if (key === "GOOGLE_SHEET_CSV_URL" && val) {
+        GOOGLE_SHEET_CSV_URL = val;
+      } else if (key === "DEFAULT_APPS_SCRIPT_URL" && val) {
+        DEFAULT_APPS_SCRIPT_URL = val;
+      }
+    });
+  } catch (e) {
+    console.warn("Could not load .env file:", e);
+  }
+}
 
 // Initialize App
 document.addEventListener("DOMContentLoaded", () => {
@@ -53,6 +82,10 @@ function triggerHaptic() {
 }
 
 async function initApp() {
+  await loadEnvConfig();
+  if (!appsScriptUrl) {
+    appsScriptUrl = DEFAULT_APPS_SCRIPT_URL;
+  }
   showConnectionStatus("Đang tải dữ liệu...", "warning");
   await fetchInventoryData();
   renderProductsGrid();

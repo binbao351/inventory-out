@@ -684,9 +684,18 @@ function openPrintModal() {
 function updateStatsCounters() {
   const countAll = inventoryData.length;
   const countIn = inventoryData.filter(i => i.stock > 0).length;
+  const countLow = inventoryData.filter(i => i.stock > 0 && i.stock <= 10).length;
+  const countOut = inventoryData.filter(i => i.stock <= 0).length;
 
-  document.getElementById("count-all").textContent = countAll;
-  document.getElementById("count-instock").textContent = countIn;
+  const elAll = document.getElementById("count-all");
+  const elIn = document.getElementById("count-instock");
+  const elLow = document.getElementById("count-lowstock");
+  const elOut = document.getElementById("count-outstock");
+
+  if (elAll) elAll.textContent = countAll;
+  if (elIn) elIn.textContent = countIn;
+  if (elLow) elLow.textContent = countLow;
+  if (elOut) elOut.textContent = countOut;
 }
 
 /**

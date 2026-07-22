@@ -2,13 +2,21 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Hệ Thống Xuất Kho Vật Tư - Google Sheets Connected</title>
   <link rel="stylesheet" href="styles.css">
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- HTML5 QR Code Barcode Scanner library -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
 <body>
+
+  <!-- Device Detection Banner -->
+  <div class="mobile-detected-banner" id="mobile-banner">
+    <span>📱 <strong>Chế độ Điện thoại:</strong> Đã bật tối ưu cảm ứng & giỏ hàng dưới màn hình</span>
+    <button onclick="dismissMobileBanner()" style="background:none; border:none; color:inherit; font-size:1.1rem; cursor:pointer;">&times;</button>
+  </div>
 
   <!-- App Header -->
   <header class="app-header">
@@ -17,8 +25,8 @@
         <i data-lucide="package-minus"></i>
       </div>
       <div>
-        <h1 class="brand-title">HỆ THỐNG XUẤT KHO VẬT TƯ</h1>
-        <p class="brand-subtitle">Đồng bộ CSDL Google Sheet & Báo cáo Tồn Kho</p>
+        <h1 class="brand-title">XUẤT KHO VẬT TƯ</h1>
+        <p class="brand-subtitle">Đồng bộ Google Sheet & Tồn kho</p>
       </div>
     </div>
 
@@ -28,14 +36,14 @@
         <span id="status-text">Đã kết nối Google Sheet</span>
       </div>
       <div class="header-actions">
-        <button class="btn btn-secondary" onclick="openHistoryModal()">
-          <i data-lucide="history"></i> Lịch Sử Xuất
+        <button class="btn btn-secondary" onclick="openHistoryModal()" title="Lịch sử xuất">
+          <i data-lucide="history"></i> <span class="hide-on-small-mobile">Lịch Sử</span>
         </button>
-        <button class="btn btn-secondary" onclick="openConfigModal()">
-          <i data-lucide="settings"></i> Cấu Hình GSheet
+        <button class="btn btn-secondary" onclick="openConfigModal()" title="Cấu hình">
+          <i data-lucide="settings"></i> <span class="hide-on-small-mobile">Cấu Hình</span>
         </button>
-        <button class="btn btn-primary" onclick="syncData()">
-          <i data-lucide="refresh-cw"></i> Đồng Bộ
+        <button class="btn btn-primary" onclick="syncData()" title="Đồng bộ">
+          <i data-lucide="refresh-cw"></i> <span class="hide-on-small-mobile">Đồng Bộ</span>
         </button>
       </div>
     </div>
@@ -55,9 +63,12 @@
             type="text" 
             id="search-input" 
             class="search-input" 
-            placeholder="Nhập TÊN HÀNG hoặc MÃ HÀNG để tìm xuất kho... (VD: Sin 5mm, Sin 1BG, Song Hỷ Phát...)"
+            placeholder="Tìm TÊN HÀNG hoặc MÃ HÀNG... (VD: Sin 5mm, Sin 1BG...)"
             autocomplete="off"
           />
+          <button class="btn btn-secondary" onclick="startBarcodeScanner()" style="min-height: 48px; border-radius: var(--radius-md); font-size: 0.85rem; padding: 0 0.8rem; flex-shrink: 0;" title="Quét mã vạch bằng camera">
+            <i data-lucide="camera"></i> <span class="hide-on-mobile-xs">Quét Mã</span>
+          </button>
           <button class="clear-search-btn" id="clear-search-btn" onclick="clearSearch()">&times;</button>
         </div>
 
@@ -80,16 +91,19 @@
 
     </section>
 
-    <!-- Right: Export Slip Builder Sidebar -->
-    <aside class="slip-panel">
+    <!-- Right/Mobile Drawer: Export Slip Builder Panel -->
+    <aside class="slip-panel" id="slip-panel">
       <div class="slip-header">
         <h2 class="slip-title">
           <i data-lucide="shopping-cart"></i> Phiếu Xuất Kho
           <span class="badge-count" id="slip-item-count">0</span>
         </h2>
-        <button class="btn btn-danger btn-sm" onclick="clearExportCart()" title="Xóa toàn bộ giỏ">
-          <i data-lucide="trash-2"></i> Xóa
-        </button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-danger btn-sm" onclick="clearExportCart()" title="Xóa toàn bộ giỏ">
+            <i data-lucide="trash-2"></i> Xóa
+          </button>
+          <button class="modal-close mobile-only" onclick="closeMobileCart()" style="font-size:1.8rem; line-height:1;">&times;</button>
+        </div>
       </div>
 
       <!-- Selected Items Queue -->
@@ -97,7 +111,7 @@
         <div style="text-align: center; color: var(--text-muted); padding: 2rem 1rem;">
           <i data-lucide="inbox" style="width: 40px; height: 40px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
           <p>Chưa có sản phẩm nào được chọn.</p>
-          <p style="font-size: 0.8rem; margin-top: 0.25rem;">Gõ tên sản phẩm ở khung tìm kiếm hoặc bấm nút "+" để thêm vào phiếu.</p>
+          <p style="font-size: 0.8rem; margin-top: 0.25rem;">Bấm nút "+ Thêm Xuất" trên thẻ sản phẩm để đưa vào phiếu.</p>
         </div>
       </div>
 
@@ -149,6 +163,32 @@
     </aside>
 
   </main>
+
+  <!-- Mobile Floating Bottom Cart Bar -->
+  <div class="mobile-bottom-bar" id="mobile-bottom-bar">
+    <button class="mobile-cart-trigger" onclick="toggleMobileCart()">
+      <span style="display:flex; align-items:center; gap:0.5rem;">
+        <i data-lucide="shopping-cart"></i> Giỏ xuất kho (<strong id="mobile-cart-count">0</strong>)
+      </span>
+      <span>Mở Phiếu Xuất &rarr;</span>
+    </button>
+  </div>
+
+  <!-- Modal: Barcode Camera Scanner -->
+  <div class="modal-overlay" id="modal-scanner">
+    <div class="modal-container" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title"><i data-lucide="camera"></i> Quét Mã Vạch / QR Code</h3>
+        <button class="modal-close" onclick="stopBarcodeScanner()">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align: center;">
+        <div id="reader" style="width: 100%; max-height: 320px; border-radius: 8px; overflow: hidden; background:#000;"></div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">
+          Đưa mã vạch hoặc mã QR của sản phẩm vào khung camera để tự động tìm kiếm.
+        </p>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal: Print Slip Preview -->
   <div class="modal-overlay" id="modal-print">
@@ -245,7 +285,7 @@
   <div class="modal-overlay" id="modal-config">
     <div class="modal-container" style="max-width: 750px;">
       <div class="modal-header">
-        <h3 class="modal-title"><i data-lucide="settings"></i> Cấu Hình Google Sheet & Apps Script</h3>
+        <h3 class="modal-title"><i data-lucide="settings"></i> Cấu Hình Google Sheet</h3>
         <button class="modal-close" onclick="closeModal('modal-config')">&times;</button>
       </div>
       <div class="modal-body">
@@ -257,27 +297,6 @@
             class="form-input" 
             value="https://docs.google.com/spreadsheets/d/1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d/edit?gid=1115255620#gid=1115255620"
           />
-        </div>
-
-        <div class="form-group" style="margin-bottom: 1.5rem;">
-          <label class="form-label">Google Apps Script Web App URL (Đồng bộ xuất kho 2 chiều)</label>
-          <input 
-            type="text" 
-            id="config-script-url" 
-            class="form-input" 
-            placeholder="Dán URL Google Apps Script Web App (https://script.google.com/macros/s/.../exec)"
-          />
-        </div>
-
-        <div style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-          <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;"><i data-lucide="code"></i> Hướng dẫn cài đặt Google Apps Script:</h4>
-          <ol style="margin-left: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.6;">
-            <li>Mở file Google Sheet của bạn &rarr; Chọn <strong>Tiện ích mở rộng (Extensions)</strong> &rarr; <strong>Apps Script</strong>.</li>
-            <li>Dán toàn bộ mã nguồn file <code>Code.gs</code> (đã được tạo sẵn trong thư mục ứng dụng này).</li>
-            <li>Nhấn <strong>Triển khai (Deploy)</strong> &rarr; <strong>Triển khai dưới dạng ứng dụng web (New Deployment &rarr; Web App)</strong>.</li>
-            <li>Tại mục "Ai có quyền truy cập" (Who has access): Chọn <strong>Bất kỳ ai (Anyone)</strong>.</li>
-            <li>Coppy URL Web App nhận được và dán vào ô bên trên.</li>
-          </ol>
         </div>
 
         <div style="display: flex; gap: 1rem; justify-content: flex-end;">

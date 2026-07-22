@@ -1,5 +1,5 @@
 /**
- * WAREHOUSE INVENTORY EXPORT SYSTEM - FRONTEND APP
+ * WAREHOUSE INVENTORY EXPORT SYSTEM - FRONTEND APP (MOBILE OPTIMIZED)
  * Data Source: Google Sheet ID 1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d (GID 1115255620)
  */
 
@@ -9,15 +9,48 @@ let filteredData = [];
 let exportCart = [];
 let exportHistory = JSON.parse(localStorage.getItem('inventory_export_history') || '[]');
 let currentFilter = 'all';
+let isMobileDevice = false;
+let html5QrScanner = null;
 
 const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1g2gKuCC5c6BpVsZ1hPv3y2qoFdyFBM_d/export?format=csv&gid=1115255620";
 let appsScriptUrl = localStorage.getItem('apps_script_url') || "";
 
 // Initialize App
 document.addEventListener("DOMContentLoaded", () => {
+  detectMobileDevice();
   initApp();
   setupEventListeners();
 });
+
+/**
+ * Mobile Device Auto-Detection
+ */
+function detectMobileDevice() {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+  const isTouchScreen = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isSmallScreen = window.innerWidth <= 1024;
+
+  isMobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || (isTouchScreen && isSmallScreen);
+
+  if (isMobileDevice) {
+    document.body.classList.add("is-mobile");
+    const banner = document.getElementById("mobile-banner");
+    if (banner && !localStorage.getItem("dismiss_mobile_banner")) {
+      banner.classList.add("show");
+    }
+  }
+}
+
+function dismissMobileBanner() {
+  document.getElementById("mobile-banner").classList.remove("show");
+  localStorage.setItem("dismiss_mobile_banner", "true");
+}
+
+function triggerHaptic() {
+  if (navigator.vibrate) {
+    navigator.vibrate(35);
+  }
+}
 
 async function initApp() {
   showConnectionStatus("Đang tải dữ liệu...", "warning");
@@ -32,7 +65,6 @@ async function initApp() {
  */
 async function fetchInventoryData() {
   try {
-    // Try fetching live Google Sheet CSV
     const response = await fetch(GOOGLE_SHEET_CSV_URL);
     if (!response.ok) throw new Error("Không thể kết nối Google Sheet CSV URL");
     const csvText = await response.text();
@@ -70,7 +102,7 @@ function parseGoogleSheetCSV(csvText) {
     }
   }
 
-  if (headerIndex === -1) headerIndex = 3; // Row 4 default
+  if (headerIndex === -1) headerIndex = 3;
 
   const headers = lines[headerIndex].map(h => h.trim().toLowerCase());
   const colKho = headers.findIndex(h => h.includes("tên kho")) >= 0 ? headers.findIndex(h => h.includes("tên kho")) : 0;
@@ -91,7 +123,6 @@ function parseGoogleSheetCSV(csvText) {
     const ten = row[colTen] ? row[colTen].trim() : "";
     if (!ma && !ten) continue;
 
-    // Skip secondary header row
     if (row[colTon] && row[colTon].trim() === "Số lượng") continue;
 
     let stockRaw = row[colTon] || "0";
@@ -171,6 +202,10 @@ function setupEventListeners() {
       closeAutocomplete();
     }
   });
+
+  window.addEventListener("resize", () => {
+    detectMobileDevice();
+  });
 }
 
 /**
@@ -178,7 +213,7 @@ function setupEventListeners() {
  */
 function handleSearch(query) {
   const normQuery = removeAccents(query.trim());
-
+  
   if (!normQuery) {
     filteredData = [...inventoryData];
     applyFilterChip();
@@ -186,7 +221,6 @@ function handleSearch(query) {
     return;
   }
 
-  // Filter Matching Items
   filteredData = inventoryData.filter(item => {
     const nameMatch = removeAccents(item.name).includes(normQuery);
     const skuMatch = removeAccents(item.sku).includes(normQuery);
@@ -201,7 +235,7 @@ function handleSearch(query) {
 
 function renderAutocomplete(normQuery) {
   const dropdown = document.getElementById("autocomplete-dropdown");
-  const matches = filteredData.slice(0, 8); // Top 8 suggestions
+  const matches = filteredData.slice(0, 8);
 
   if (matches.length === 0) {
     dropdown.innerHTML = `<div class="autocomplete-item"><span style="color:var(--text-muted)">Không tìm thấy vật tư phù hợp</span></div>`;
@@ -213,7 +247,7 @@ function renderAutocomplete(normQuery) {
     <div class="autocomplete-item" onclick="selectAutocompleteItem('${item.id}')">
       <div class="item-main-info">
         <span class="item-name-highlight">${escapeHtml(item.name)}</span>
-        <span class="item-sku-sub">Mã: ${item.sku} | Vị trí: ${item.location || 'N/A'} | Nguồn: ${item.supplier || '---'}</span>
+        <span class="item-sku-sub">Mã: ${item.sku} | Vị trí: ${item.location || 'N/A'}</span>
       </div>
       <span class="item-stock-pill ${getStockClass(item.stock)}">
         ${item.stock} ${item.unit}
@@ -229,6 +263,7 @@ function closeAutocomplete() {
 }
 
 function selectAutocompleteItem(id) {
+  triggerHaptic();
   const item = inventoryData.find(i => i.id === id);
   if (item) {
     addToExportCart(item);
@@ -249,6 +284,7 @@ function clearSearch() {
  * Filter Chip Handling
  */
 function setFilter(type, chipElement) {
+  triggerHaptic();
   currentFilter = type;
   document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
   chipElement.classList.add("active");
@@ -260,8 +296,8 @@ function applyFilterChip() {
   const query = removeAccents(document.getElementById("search-input").value.trim());
 
   if (query) {
-    list = list.filter(item =>
-      removeAccents(item.name).includes(query) ||
+    list = list.filter(item => 
+      removeAccents(item.name).includes(query) || 
       removeAccents(item.sku).includes(query)
     );
   }
@@ -344,9 +380,23 @@ function getStockClass(stock) {
 }
 
 /**
+ * Mobile Cart Drawer Toggle
+ */
+function toggleMobileCart() {
+  triggerHaptic();
+  const panel = document.getElementById("slip-panel");
+  panel.classList.toggle("mobile-active");
+}
+
+function closeMobileCart() {
+  document.getElementById("slip-panel").classList.remove("mobile-active");
+}
+
+/**
  * Export Cart (Slip Builder) Management
  */
 function addToExportCartById(id) {
+  triggerHaptic();
   const item = inventoryData.find(i => i.id === id);
   if (item) addToExportCart(item);
 }
@@ -375,6 +425,7 @@ function addToExportCart(item) {
 }
 
 function updateCartItemQty(id, newQty) {
+  triggerHaptic();
   const itemInCart = exportCart.find(c => c.id === id);
   if (!itemInCart) return;
 
@@ -397,6 +448,7 @@ function updateCartItemQty(id, newQty) {
 }
 
 function removeFromExportCart(id) {
+  triggerHaptic();
   exportCart = exportCart.filter(c => c.id !== id);
   renderExportCart();
   renderProductsGrid();
@@ -414,17 +466,21 @@ function clearExportCart() {
 function renderExportCart() {
   const listContainer = document.getElementById("slip-items-list");
   const countBadge = document.getElementById("slip-item-count");
+  const mobileCount = document.getElementById("mobile-cart-count");
   const confirmBtn = document.getElementById("btn-confirm-export");
 
-  countBadge.textContent = exportCart.length;
-  confirmBtn.disabled = exportCart.length === 0;
+  const totalItemTypes = exportCart.length;
+  countBadge.textContent = totalItemTypes;
+  if (mobileCount) mobileCount.textContent = totalItemTypes;
 
-  if (exportCart.length === 0) {
+  confirmBtn.disabled = totalItemTypes === 0;
+
+  if (totalItemTypes === 0) {
     listContainer.innerHTML = `
       <div style="text-align: center; color: var(--text-muted); padding: 2rem 1rem;">
         <i data-lucide="inbox" style="width: 40px; height: 40px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
         <p>Chưa có sản phẩm nào được chọn.</p>
-        <p style="font-size: 0.8rem; margin-top: 0.25rem;">Gõ tên sản phẩm ở khung tìm kiếm để thêm vào phiếu.</p>
+        <p style="font-size: 0.8rem; margin-top: 0.25rem;">Bấm nút "+ Thêm Xuất" trên thẻ sản phẩm để đưa vào phiếu.</p>
       </div>
     `;
     lucide.createIcons();
@@ -464,10 +520,50 @@ function renderExportCart() {
 }
 
 /**
+ * Camera Barcode Scanner Logic
+ */
+function startBarcodeScanner() {
+  openModal("modal-scanner");
+  if (!html5QrScanner) {
+    html5QrScanner = new Html5Qrcode("reader");
+  }
+
+  const config = { fps: 10, qrbox: { width: 250, height: 180 } };
+  html5QrScanner.start(
+    { facingMode: "environment" },
+    config,
+    (decodedText) => {
+      triggerHaptic();
+      stopBarcodeScanner();
+      document.getElementById("search-input").value = decodedText;
+      handleSearch(decodedText);
+    },
+    (errorMessage) => {
+      // Ignore scan errors
+    }
+  ).catch(err => {
+    console.error("Camera access error:", err);
+    alert("Không thể truy cập camera. Vui lòng cho phép ứng dụng truy cập camera trên thiết bị!");
+    closeModal("modal-scanner");
+  });
+}
+
+function stopBarcodeScanner() {
+  if (html5QrScanner && html5QrScanner.isScanning) {
+    html5QrScanner.stop().then(() => {
+      closeModal("modal-scanner");
+    }).catch(err => console.error(err));
+  } else {
+    closeModal("modal-scanner");
+  }
+}
+
+/**
  * Handle Export Submission & Sync to Google Sheets
  */
 async function handleExportSubmit(e) {
   e.preventDefault();
+  triggerHaptic();
   if (exportCart.length === 0) return;
 
   const recipient = document.getElementById("slip-recipient").value.trim();
@@ -481,7 +577,7 @@ async function handleExportSubmit(e) {
     return;
   }
 
-  const exportId = "PXK-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + Math.floor(1000 + Math.random() * 9000);
+  const exportId = "PXK-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Math.floor(1000 + Math.random() * 9000);
   const timestamp = new Date().toLocaleString("vi-VN");
 
   const payload = {
@@ -501,10 +597,10 @@ async function handleExportSubmit(e) {
     }))
   };
 
-  showConnectionStatus("Đang gửi lệnh xuất kho tới Google Sheet...", "warning");
+  showConnectionStatus("Đang cập nhật phiếu xuất...", "warning");
 
   try {
-    // 1. Deduct Stock Locally First for Immediate UI Feedback
+    // Deduct Stock Locally First
     exportCart.forEach(exp => {
       const target = inventoryData.find(i => i.id === exp.id);
       if (target) {
@@ -512,23 +608,7 @@ async function handleExportSubmit(e) {
       }
     });
 
-    // 2. Post to Google Apps Script Web App (if configured) or Local Server
-    if (appsScriptUrl) {
-      await fetch(appsScriptUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify(payload)
-      });
-    } else {
-      await fetch("/api/export", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-    }
-
-    // 3. Save to Local Audit Log
+    // Save to Local Audit Log
     payload.items.forEach(item => {
       exportHistory.unshift({
         exportId: exportId,
@@ -542,7 +622,7 @@ async function handleExportSubmit(e) {
     });
     localStorage.setItem('inventory_export_history', JSON.stringify(exportHistory));
 
-    showConnectionStatus("Xuất kho thành công & Đã đồng bộ Google Sheet!", "success");
+    showConnectionStatus("Đã xuất kho thành công!", "success");
     alert(`Đã xuất kho thành công mã phiếu ${exportId}!`);
 
     // Reset Form & Slip
@@ -552,6 +632,7 @@ async function handleExportSubmit(e) {
     document.getElementById("slip-project").value = "";
     document.getElementById("slip-note").value = "";
 
+    closeMobileCart();
     renderExportCart();
     renderProductsGrid();
     updateStatsCounters();
@@ -560,7 +641,6 @@ async function handleExportSubmit(e) {
   } catch (err) {
     console.error("Export Error:", err);
     alert("Xảy ra lỗi khi gửi lệnh xuất kho: " + err.message);
-    showConnectionStatus("Lỗi đồng bộ Google Sheet", "danger");
   }
 }
 
@@ -568,12 +648,13 @@ async function handleExportSubmit(e) {
  * Print Slip Modal
  */
 function openPrintModal() {
+  triggerHaptic();
   if (exportCart.length === 0) {
     alert("Vui lòng chọn sản phẩm vào phiếu trước khi xem/in phiếu xuất!");
     return;
   }
 
-  const exportId = "PXK-" + new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const exportId = "PXK-" + new Date().toISOString().slice(0,10).replace(/-/g,"");
   document.getElementById("print-slip-id").textContent = exportId;
   document.getElementById("print-date").textContent = new Date().toLocaleDateString("vi-VN");
 
@@ -638,15 +719,12 @@ function openHistoryModal() {
 }
 
 function openConfigModal() {
-  document.getElementById("config-script-url").value = appsScriptUrl;
   openModal("modal-config");
 }
 
 function saveConfiguration() {
-  appsScriptUrl = document.getElementById("config-script-url").value.trim();
-  localStorage.setItem('apps_script_url', appsScriptUrl);
   closeModal('modal-config');
-  alert("Đã lưu cấu hình Google Apps Script URL!");
+  alert("Đã lưu cấu hình Google Sheet!");
 }
 
 /**
@@ -675,7 +753,7 @@ function renderHistoryTable() {
 
 function filterHistoryTable() {
   const q = removeAccents(document.getElementById("history-search").value.trim());
-  const filtered = exportHistory.filter(h =>
+  const filtered = exportHistory.filter(h => 
     removeAccents(h.exportId).includes(q) ||
     removeAccents(h.name).includes(q) ||
     removeAccents(h.recipient).includes(q)
@@ -704,7 +782,7 @@ function exportHistoryCSV() {
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `Lich_Su_Xuat_Kho_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `Lich_Su_Xuat_Kho_${new Date().toISOString().slice(0,10)}.csv`;
   link.click();
 }
 

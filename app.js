@@ -12,46 +12,18 @@ let currentFilter = 'all';
 let isMobileDevice = false;
 let html5QrScanner = null;
 
-let GOOGLE_SHEET_CSV_URL = "";
-let DEFAULT_APPS_SCRIPT_URL = ""; 
-
-let appsScriptUrl = localStorage.getItem('apps_script_url') || "";
+const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI/export?format=csv&gid=424403728";
+const DEFAULT_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxHVl1AAC8d4OdEtxQkOaFxEcOBBQc9WhPmpV0ceom-tkjNc6ymOzfwTwm4lhKhsaci/exec"; 
 
 /**
- * Load Environment & App Parameters (config.json or .env)
+ * Get active Apps Script URL (fallback to DEFAULT_APPS_SCRIPT_URL if localStorage empty)
  */
-async function loadEnvConfig() {
-  try {
-    // 1. Try loading config.json (GitHub Pages & Static Host compatible)
-    const jsonRes = await fetch("config.json");
-    if (jsonRes.ok) {
-      const cfg = await jsonRes.json();
-      if (cfg.GOOGLE_SHEET_CSV_URL) GOOGLE_SHEET_CSV_URL = cfg.GOOGLE_SHEET_CSV_URL;
-      if (cfg.DEFAULT_APPS_SCRIPT_URL) DEFAULT_APPS_SCRIPT_URL = cfg.DEFAULT_APPS_SCRIPT_URL;
-      return;
-    }
-  } catch (e) {
-    // Fallback to .env parser
+function getAppsScriptUrl() {
+  const stored = localStorage.getItem('apps_script_url');
+  if (stored && stored.trim() !== "") {
+    return stored.trim();
   }
-
-  try {
-    const res = await fetch(".env");
-    if (!res.ok) return;
-    const text = await res.text();
-    const lines = text.split(/\r?\n/);
-    lines.forEach(line => {
-      line = line.trim();
-      if (!line || line.startsWith("#")) return;
-      const parts = line.split("=");
-      if (parts.length < 2) return;
-      const key = parts[0].trim();
-      const val = parts.slice(1).join("=").trim();
-      if (key === "GOOGLE_SHEET_CSV_URL" && val) GOOGLE_SHEET_CSV_URL = val;
-      if (key === "DEFAULT_APPS_SCRIPT_URL" && val) DEFAULT_APPS_SCRIPT_URL = val;
-    });
-  } catch (e) {
-    console.warn("Could not load config file:", e);
-  }
+  return DEFAULT_APPS_SCRIPT_URL;
 }
 
 // Initialize App
@@ -92,9 +64,9 @@ function triggerHaptic() {
 }
 
 async function initApp() {
-  await loadEnvConfig();
-  if (!appsScriptUrl) {
-    appsScriptUrl = DEFAULT_APPS_SCRIPT_URL;
+  const scriptInput = document.getElementById("config-script-url");
+  if (scriptInput) {
+    scriptInput.value = getAppsScriptUrl();
   }
   showConnectionStatus("Đang tải dữ liệu...", "warning");
   await fetchInventoryData();
@@ -708,8 +680,9 @@ async function handleExportSubmit(e) {
     });
 
     // Send Export Payload to Google Apps Script Web App or Local Server
-    if (appsScriptUrl) {
-      await fetch(appsScriptUrl, {
+    const targetScriptUrl = getAppsScriptUrl();
+    if (targetScriptUrl) {
+      await fetch(targetScriptUrl, {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "text/plain" },
@@ -845,7 +818,7 @@ function openHistoryModal() {
 function openConfigModal() {
   const scriptInput = document.getElementById("config-script-url");
   if (scriptInput) {
-    scriptInput.value = appsScriptUrl;
+    scriptInput.value = getAppsScriptUrl();
   }
   openModal("modal-config");
 }
@@ -853,8 +826,12 @@ function openConfigModal() {
 function saveConfiguration() {
   const scriptInput = document.getElementById("config-script-url");
   if (scriptInput) {
-    appsScriptUrl = scriptInput.value.trim();
-    localStorage.setItem('apps_script_url', appsScriptUrl);
+    const newUrl = scriptInput.value.trim();
+    if (newUrl && newUrl !== DEFAULT_APPS_SCRIPT_URL) {
+      localStorage.setItem('apps_script_url', newUrl);
+    } else {
+      localStorage.removeItem('apps_script_url');
+    }
   }
   closeModal('modal-config');
   alert("Đã lưu cấu hình Google Apps Script Web App URL!");

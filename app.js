@@ -283,8 +283,8 @@ function renderAutocomplete(normQuery) {
         <span class="item-name-highlight">${escapeHtml(item.name)}</span>
         <span class="item-sku-sub">Mã: ${item.sku} | Vị trí: ${item.location || 'N/A'}</span>
       </div>
-      <span class="item-stock-pill ${getStockClass(item.stock)}">
-        ${item.stock} ${item.unit}
+      <span class="item-stock-pill in-stock">
+        ${escapeHtml(item.unit)}
       </span>
     </div>
   `).join("");
@@ -347,14 +347,6 @@ function applyFilterChip() {
     );
   }
 
-  if (currentFilter === 'in-stock') {
-    list = list.filter(i => i.stock > 0);
-  } else if (currentFilter === 'low-stock') {
-    list = list.filter(i => i.stock > 0 && i.stock <= 10);
-  } else if (currentFilter === 'out-stock') {
-    list = list.filter(i => i.stock === 0);
-  }
-
   filteredData = list;
   renderProductsGrid();
 }
@@ -382,17 +374,11 @@ function renderProductsGrid() {
   const displayItems = needsLimit ? filteredData.slice(0, INITIAL_DISPLAY_LIMIT) : filteredData;
 
   let html = displayItems.map(item => {
-    const inCart = exportCart.find(c => c.id === item.id);
-    const cartQty = inCart ? inCart.exportQty : 0;
-    const remainingStock = Math.max(0, item.stock - cartQty);
-
     return `
       <div class="product-card">
         <div class="product-header">
           <span class="product-sku">${escapeHtml(item.sku) || 'N/A'}</span>
-          <span class="stock-tag ${getStockClass(item.stock)}">
-            ${item.stock > 0 ? (item.stock <= 10 ? 'Sắp Hết' : 'Còn Hàng') : 'Hết Hàng'}
-          </span>
+          <span class="stock-tag in-stock">${escapeHtml(item.unit || 'Cái')}</span>
         </div>
 
         <h3 class="product-title">${escapeHtml(item.name)}</h3>
@@ -402,16 +388,10 @@ function renderProductsGrid() {
           <div><span class="detail-label">Nguồn:</span> <strong>${escapeHtml(item.supplier || '---')}</strong></div>
         </div>
 
-        <div class="product-footer">
-          <div class="stock-count-display">
-            <span class="stock-num">${remainingStock}</span>
-            <span class="unit-label">Tồn kho (${escapeHtml(item.unit)})</span>
-          </div>
-
+        <div class="product-footer" style="justify-content: flex-end;">
           <button 
             class="btn-add-item" 
             onclick="addToExportCartById('${item.id}')"
-            ${remainingStock <= 0 ? 'disabled' : ''}
           >
             <i data-lucide="plus"></i> Thêm Xuất
           </button>
@@ -475,20 +455,12 @@ function addToExportCartById(id) {
 function addToExportCart(item) {
   const existing = exportCart.find(c => c.id === item.id);
   if (existing) {
-    if (existing.exportQty < item.stock) {
-      existing.exportQty += 1;
-    } else {
-      alert(`Số lượng xuất vượt quá tồn kho khả dụng (${item.stock} ${item.unit})!`);
-    }
+    existing.exportQty += 1;
   } else {
-    if (item.stock > 0) {
-      exportCart.push({
-        ...item,
-        exportQty: 1
-      });
-    } else {
-      alert("Sản phẩm đã hết hàng trong kho!");
-    }
+    exportCart.push({
+      ...item,
+      exportQty: 1
+    });
   }
 
   renderExportCart();
@@ -500,13 +472,7 @@ function updateCartItemQty(id, newQty) {
   const itemInCart = exportCart.find(c => c.id === id);
   if (!itemInCart) return;
 
-  const stockLimit = itemInCart.stock;
   let qty = parseInt(newQty) || 0;
-
-  if (qty > stockLimit) {
-    alert(`Số lượng xuất tối đa cho phép là ${stockLimit} ${itemInCart.unit}`);
-    qty = stockLimit;
-  }
 
   if (qty <= 0) {
     removeFromExportCart(id);
@@ -576,13 +542,11 @@ function renderExportCart() {
             class="qty-input" 
             value="${item.exportQty}" 
             min="1" 
-            max="${item.stock}" 
             onchange="updateCartItemQty('${item.id}', this.value)"
           />
           <button class="stepper-btn" onclick="updateCartItemQty('${item.id}', ${item.exportQty + 1})">+</button>
-          <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.2rem;">${item.unit}</span>
+          <span style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.2rem;">${escapeHtml(item.unit)}</span>
         </div>
-        <span class="max-stock-hint">Tồn: ${item.stock}</span>
       </div>
     </div>
   `).join("");
@@ -663,22 +627,13 @@ async function handleExportSubmit(e) {
       sku: i.sku,
       name: i.name,
       unit: i.unit,
-      exportQty: i.exportQty,
-      stock: i.stock
+      exportQty: i.exportQty
     }))
   };
 
   showConnectionStatus("Đang cập nhật phiếu xuất...", "warning");
 
   try {
-    // Deduct Stock Locally First
-    exportCart.forEach(exp => {
-      const target = inventoryData.find(i => i.id === exp.id);
-      if (target) {
-        target.stock = Math.max(0, target.stock - exp.exportQty);
-      }
-    });
-
     // Send Export Payload to Google Apps Script Web App or Local Server
     const targetScriptUrl = getAppsScriptUrl();
     if (targetScriptUrl) {
@@ -770,19 +725,8 @@ function openPrintModal() {
  */
 function updateStatsCounters() {
   const countAll = inventoryData.length;
-  const countIn = inventoryData.filter(i => i.stock > 0).length;
-  const countLow = inventoryData.filter(i => i.stock > 0 && i.stock <= 10).length;
-  const countOut = inventoryData.filter(i => i.stock <= 0).length;
-
   const elAll = document.getElementById("count-all");
-  const elIn = document.getElementById("count-instock");
-  const elLow = document.getElementById("count-lowstock");
-  const elOut = document.getElementById("count-outstock");
-
   if (elAll) elAll.textContent = countAll;
-  if (elIn) elIn.textContent = countIn;
-  if (elLow) elLow.textContent = countLow;
-  if (elOut) elOut.textContent = countOut;
 }
 
 /**

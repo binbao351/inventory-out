@@ -26,7 +26,7 @@
       </div>
       <div>
         <h1 class="brand-title">XUẤT KHO VẬT TƯ</h1>
-        <p class="brand-subtitle">Đồng bộ Google Sheet & Tồn kho</p>
+        <p class="brand-subtitle">Đồng bộ & Ghi Nhận Lịch Sử Xuất Kho</p>
       </div>
     </div>
 
@@ -76,10 +76,7 @@
 
         <!-- Filter Chips -->
         <div class="filter-chips">
-          <button class="chip active" onclick="setFilter('all', this)">Tất cả (<span id="count-all">0</span>)</button>
-          <button class="chip" onclick="setFilter('in-stock', this)">Còn hàng (<span id="count-instock">0</span>)</button>
-          <button class="chip" onclick="setFilter('low-stock', this)">Sắp hết (<span id="count-lowstock">0</span>)</button>
-          <button class="chip" onclick="setFilter('out-stock', this)">Hết hàng (<span id="count-outstock">0</span>)</button>
+          <button class="chip active" onclick="setFilter('all', this)"><i data-lucide="package" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px;"></i> Danh Mục Vật Tư (<span id="count-all">0</span> Mã Hàng)</button>
         </div>
       </div>
 
@@ -299,7 +296,7 @@
         </div>
 
         <div class="form-group" style="margin-bottom: 1.5rem;">
-          <label class="form-label">Google Apps Script Web App URL (Đồng bộ xuất kho & Tồn kho 2 chiều)</label>
+          <label class="form-label">Google Apps Script Web App URL (Tự động lưu lịch sử xuất kho về Google Sheet)</label>
           <input 
             type="text" 
             id="config-script-url" 

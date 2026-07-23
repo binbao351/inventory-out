@@ -1,25 +1,11 @@
 /**
- * GOOGLE APPS SCRIPT - QUẢN LÝ XUẤT KHO VẬT TƯ
+ * GOOGLE APPS SCRIPT - QUẢN LÝ XUẤT KHO VẬT TƯ (CHỈ GHI NHẬN LỊCH SỬ XUẤT)
  * Google Sheet ID: 1HLWmcgSAMUEWc1n_SdLYH3etzRqPj8g_5ipO7Oqg5EI
  * GID: 424403728
  */
 
-const SHEET_NAME_DATA = "Data"; // Hoặc tên Tab chứa dữ liệu tồn kho
+const SHEET_NAME_DATA = "Data"; // Tab chứa danh mục vật tư
 const SHEET_NAME_LOGS = "LICH_SU_XUAT_KHO";
-
-function parseVietnameseNumber(val) {
-  if (val === null || val === undefined) return 0;
-  let str = String(val).trim();
-  if (!str) return 0;
-  str = str.replace(/\s+/g, "");
-  if (str.includes(".") && str.includes(",")) {
-    str = str.replace(/\./g, "").replace(",", ".");
-  } else if (str.includes(",")) {
-    str = str.replace(",", ".");
-  }
-  const num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
-}
 
 /**
  * Phục vụ Giao diện Web App khi truy cập qua URL Web App của Google Apps Script
@@ -40,7 +26,7 @@ function doGet(e) {
 }
 
 /**
- * Xử lý yêu cầu POST từ Web App (Ghi nhận Lịch sử Xuất kho & Trừ Tồn Kho)
+ * Xử lý yêu cầu POST từ Web App (Ghi nhận Lịch sử Xuất kho)
  */
 function doPost(e) {
   try {
@@ -66,7 +52,7 @@ function doPost(e) {
 }
 
 /**
- * Lấy danh sách vật tư tồn kho từ Google Sheet
+ * Lấy danh sách vật tư từ Google Sheet
  */
 function getItems() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -91,35 +77,25 @@ function getItems() {
   const colTen = headers.findIndex(h => String(h).trim().toLowerCase().includes("tên hàng")) >= 0 ? headers.findIndex(h => String(h).trim().toLowerCase().includes("tên hàng")) : 2;
   const colMoTa = headers.findIndex(h => String(h).trim().toLowerCase().includes("mô tả")) >= 0 ? headers.findIndex(h => String(h).trim().toLowerCase().includes("mô tả")) : 3;
   const colDvt = headers.findIndex(h => String(h).trim().toLowerCase().includes("đvt")) >= 0 ? headers.findIndex(h => String(h).trim().toLowerCase().includes("đvt")) : 4;
-  const colTon = headers.findIndex(h => String(h).trim().toLowerCase().includes("cuối kỳ")) >= 0 ? headers.findIndex(h => String(h).trim().toLowerCase().includes("cuối kỳ")) : 5;
   const colNguon = headers.findIndex(h => String(h).trim().toLowerCase().includes("nguồn gốc")) >= 0 ? headers.findIndex(h => String(h).trim().toLowerCase().includes("nguồn gốc")) : 6;
-  const colMin = headers.findIndex(h => String(h).trim().toLowerCase().includes("min")) >= 0 ? headers.findIndex(h => String(h).trim().toLowerCase().includes("min")) : 7;
 
   const items = [];
   for (let r = headerRowIndex + 1; r < data.length; r++) {
     const row = data[r];
     if (!row || row.length === 0) continue;
-    
-    // Bỏ qua các dòng trống hoặc dòng gộp
-    if (row[colTon] === "Số lượng") continue;
-    
+
     const ma = String(row[colMa] || "").trim();
     const ten = String(row[colTen] || "").trim();
     if (!ma && !ten) continue;
 
-    let ton = parseVietnameseNumber(row[colTon]);
-    let minQty = parseVietnameseNumber(row[colMin]);
-
     items.push({
-      rowIndex: r + 1, // 1-indexed row number in Sheet
+      rowIndex: r + 1,
       sku: ma,
       name: ten,
       warehouse: String(row[colKho] || "KHO TỔNG").trim(),
       location: String(row[colMoTa] || "").trim(),
       unit: String(row[colDvt] || "Cái").trim(),
-      stock: ton,
-      supplier: String(row[colNguon] || "").trim(),
-      minStock: minQty
+      supplier: String(row[colNguon] || "").trim()
     });
   }
 
@@ -127,11 +103,10 @@ function getItems() {
 }
 
 /**
- * Xử lý Ghi nhận xuất kho & Trừ số lượng trong Google Sheet
+ * Xử lý Ghi nhận xuất kho vào Sheet Lịch Sử (Không trừ tồn kho)
  */
 function processStockExport(payload) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheetData = ss.getSheetByName(SHEET_NAME_DATA) || ss.getSheets()[0];
   
   // 1. Kiểm tra hoặc tạo Tab Lịch sử Xuất kho
   let sheetLogs = ss.getSheetByName(SHEET_NAME_LOGS);
@@ -139,13 +114,13 @@ function processStockExport(payload) {
     sheetLogs = ss.insertSheet(SHEET_NAME_LOGS);
     sheetLogs.appendRow([
       "Mã Phiếu", "Thời Gian", "Mã Hàng", "Tên Hàng", "ĐVT", 
-      "Số Lượng Xuất", "Tồn Cũ", "Tồn Mới", "Người Nhận", "Bộ Phận", "Lý Do Xuất", "Dự Án / Ghi Chú"
+      "Số Lượng Xuất", "Người Nhận", "Bộ Phận", "Lý Do Xuất", "Dự Án / Ghi Chú"
     ]);
-    sheetLogs.getRange("A1:L1").setFontWeight("bold").setBackground("#e2e8f0");
+    sheetLogs.getRange("A1:J1").setFontWeight("bold").setBackground("#e2e8f0");
   }
 
-  const exportId = "PXK-" + Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd-HHmmss");
-  const timestamp = Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
+  const exportId = payload.exportId || ("PXK-" + Utilities.formatDate(new Date(), "GMT+7", "yyyyMMdd-HHmmss"));
+  const timestamp = payload.timestamp || Utilities.formatDate(new Date(), "GMT+7", "dd/MM/yyyy HH:mm:ss");
 
   const items = payload.items || [];
   const recipient = payload.recipient || "";
@@ -153,22 +128,10 @@ function processStockExport(payload) {
   const reason = payload.reason || "";
   const note = payload.note || "";
 
-  const updatedItems = [];
-
-  // Lấy lại dữ liệu tồn kho hiện tại
-  const fullData = getItems();
-  const itemMap = {};
-  fullData.forEach(item => {
-    itemMap[item.sku || item.name] = item;
-  });
+  const recordedItems = [];
 
   items.forEach(expItem => {
-    const key = expItem.sku || expItem.name;
-    const currentObj = itemMap[key];
-    
-    let oldStock = currentObj ? currentObj.stock : expItem.stock;
     let exportQty = Number(expItem.exportQty) || 0;
-    let newStock = Math.max(0, oldStock - exportQty);
 
     // Ghi vào Sheet Lịch sử
     sheetLogs.appendRow([
@@ -178,25 +141,15 @@ function processStockExport(payload) {
       expItem.name,
       expItem.unit,
       exportQty,
-      oldStock,
-      newStock,
       recipient,
       department,
       reason,
       note
     ]);
 
-    // Trừ tồn kho trực tiếp trong tab Data nếu tìm thấy dòng
-    if (currentObj && currentObj.rowIndex) {
-      // Cột tồn kho Cuối kỳ (thường là cột F - cột 6)
-      sheetData.getRange(currentObj.rowIndex, 6).setValue(newStock);
-    }
-
-    updatedItems.push({
+    recordedItems.push({
       sku: expItem.sku,
       name: expItem.name,
-      oldStock: oldStock,
-      newStock: newStock,
       exportQty: exportQty
     });
   });
@@ -204,7 +157,7 @@ function processStockExport(payload) {
   return {
     exportId: exportId,
     timestamp: timestamp,
-    updatedCount: updatedItems.length,
-    items: updatedItems
+    recordedCount: recordedItems.length,
+    items: recordedItems
   };
 }
